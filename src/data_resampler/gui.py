@@ -5,8 +5,7 @@ Simple GUI for the data resampler.
 Lets the user pick an input CSV, configure the resampling arguments and
 export the result to the same folder as the input file.
 
-Run from the project root with:
-    python src/my_package/gui.py
+Launch with `python -m data_resampler` (or `data-resampler` once installed).
 """
 
 import sys
@@ -28,14 +27,12 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-try:
-    from .data_resample import resample_csv
-except ImportError:  # running this file directly as a script
-    from data_resample import resample_csv
+from .core import DEFAULT_AGGREGATION, resample_csv
 
 
 INTERVALS = ["1min", "5min", "10min", "15min", "30min", "1h", "1D"]
-AGGREGATIONS = ["mean", "sum", "min", "max", "median", "first", "last"]
+PER_COLUMN = "per column (default rules)"
+AGGREGATIONS = [PER_COLUMN, "mean", "sum", "min", "max", "median", "first", "last"]
 DEFAULT_DATE_FORMAT = "%d-%m-%y %H:%M:%S"
 
 
@@ -152,6 +149,10 @@ class ResamplerWindow(QWidget):
             if answer != QMessageBox.StandardButton.Yes:
                 return
 
+        aggregation = self.aggregation_combo.currentText()
+        if aggregation == PER_COLUMN:
+            aggregation = DEFAULT_AGGREGATION
+
         date_format = None if self.auto_date_check.isChecked() else self.date_format_edit.text()
 
         self._log(f"Resampling {input_path.name} to {self.interval_combo.currentText()}...")
@@ -162,7 +163,7 @@ class ResamplerWindow(QWidget):
                 interval=self.interval_combo.currentText(),
                 timestamp_column=self.timestamp_combo.currentText(),
                 date_format=date_format or None,
-                aggregation=self.aggregation_combo.currentText(),
+                aggregation=aggregation,
             )
         except Exception as exc:  # noqa: BLE001 - show any error to the user
             self._log(f"Error: {exc}")

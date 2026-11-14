@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "data-resampler"
+version = "0.1.0"
+description = "Resample time-series CSV files from one time interval to another."
+requires-python = ">=3.10"
+dependencies = [
+    "pandas",
+    "PySide6",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[project.gui-scripts]
+data-resampler = "data_resampler.gui:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
