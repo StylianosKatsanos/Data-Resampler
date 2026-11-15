@@ -21,6 +21,22 @@ DEFAULT_AGGREGATION: dict[str, str] = {
     "Energy Meter": "last",
 }
 
+# Delimiters tried when auto-detecting.
+CANDIDATE_DELIMITERS = (",", ";", "\t", "|")
+
+
+def detect_delimiter(input_file: str | Path) -> str:
+    """
+    Guess the delimiter of a CSV file from its header line: the candidate
+    that appears most often wins. Falls back to a comma.
+    """
+    with open(input_file, encoding="utf-8-sig", errors="replace") as f:
+        header = f.readline()
+
+    counts = {d: header.count(d) for d in CANDIDATE_DELIMITERS}
+    best = max(counts, key=counts.get)
+    return best if counts[best] > 0 else ","
+
 
 def resample_csv(
     input_file: str | Path,
@@ -30,6 +46,7 @@ def resample_csv(
     date_format: str | None = "%d-%m-%y %H:%M:%S",
     aggregation: str | Mapping[str, str] = "mean",
     fallback_aggregation: str = "mean",
+    delimiter: str | None = None,
 ) -> pd.DataFrame:
     """
     Load a time-series CSV, resample it to a specified interval,
@@ -63,6 +80,11 @@ def resample_csv(
         Only used when `aggregation` is a mapping: the method for numeric
         columns that are not listed in it.
 
+    delimiter:
+        Column separator of the input file, e.g. "," or ";".
+        If None, it is detected from the header line.
+        The output file is written with the same delimiter.
+
     Returns
     -------
     pd.DataFrame
@@ -75,7 +97,10 @@ def resample_csv(
         raise FileNotFoundError(f"Input file not found: {input_file}")
 
     # Load data
-    df = pd.read_csv(input_file)
+    if delimiter is None:
+        delimiter = detect_delimiter(input_file)
+
+    df = pd.read_csv(input_file, sep=delimiter)
 
     if timestamp_column not in df.columns:
         raise ValueError(
@@ -124,6 +149,6 @@ def resample_csv(
 
     # Save if requested
     if output_file is not None:
-        resampled.to_csv(Path(output_file))
+        resampled.to_csv(Path(output_file), sep=delimiter)
 
     return resampled

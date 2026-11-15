@@ -27,12 +27,14 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .core import DEFAULT_AGGREGATION, resample_csv
+from .core import DEFAULT_AGGREGATION, detect_delimiter, resample_csv
 
 
 INTERVALS = ["1min", "5min", "10min", "15min", "30min", "1h", "1D"]
 PER_COLUMN = "per column (default rules)"
 AGGREGATIONS = [PER_COLUMN, "mean", "sum", "min", "max", "median", "first", "last"]
+# Label shown in the dropdown -> value passed to resample_csv
+DELIMITERS = {"Auto-detect": None, "Comma (,)": ",", "Semicolon (;)": ";", "Tab": "\t"}
 DEFAULT_DATE_FORMAT = "%d-%m-%y %H:%M:%S"
 
 
@@ -51,6 +53,10 @@ class ResamplerWindow(QWidget):
         input_row = QHBoxLayout()
         input_row.addWidget(self.input_edit)
         input_row.addWidget(browse_btn)
+
+        self.delimiter_combo = QComboBox()
+        self.delimiter_combo.addItems(DELIMITERS)
+        self.delimiter_combo.currentTextChanged.connect(self._on_input_changed)
 
         # --- Resampling arguments ---
         self.interval_combo = QComboBox()
@@ -81,6 +87,7 @@ class ResamplerWindow(QWidget):
 
         form = QFormLayout()
         form.addRow("Input file:", input_row)
+        form.addRow("Delimiter:", self.delimiter_combo)
         form.addRow("Interval:", self.interval_combo)
         form.addRow("Aggregation:", self.aggregation_combo)
         form.addRow("Timestamp column:", self.timestamp_combo)
@@ -114,8 +121,12 @@ class ResamplerWindow(QWidget):
         path = Path(self.input_edit.text())
         if not path.is_file():
             return
+        delimiter = DELIMITERS[self.delimiter_combo.currentText()]
         try:
-            columns = list(pd.read_csv(path, nrows=0).columns)
+            if delimiter is None:
+                delimiter = detect_delimiter(path)
+                self._log(f"Detected delimiter: {delimiter!r}")
+            columns = list(pd.read_csv(path, sep=delimiter, nrows=0).columns)
         except Exception as exc:  # noqa: BLE001 - show any read problem to the user
             self._log(f"Could not read header: {exc}")
             return
@@ -164,6 +175,7 @@ class ResamplerWindow(QWidget):
                 timestamp_column=self.timestamp_combo.currentText(),
                 date_format=date_format or None,
                 aggregation=aggregation,
+                delimiter=DELIMITERS[self.delimiter_combo.currentText()],
             )
         except Exception as exc:  # noqa: BLE001 - show any error to the user
             self._log(f"Error: {exc}")
