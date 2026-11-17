@@ -3,7 +3,6 @@ pyproject.toml
 src/data_resampler/__init__.py
 src/data_resampler/__main__.py
 src/data_resampler/core.py
-src/data_resampler/data_resample.py
 src/data_resampler/gui.py
 src/data_resampler.egg-info/PKG-INFO
 src/data_resampler.egg-info/SOURCES.txt

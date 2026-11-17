@@ -15,7 +15,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest"]
 
-[project.gui-scripts]
+[project.scripts]
 data-resampler = "data_resampler.gui:main"
 
 [tool.setuptools.packages.find]

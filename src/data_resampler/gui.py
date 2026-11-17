@@ -12,9 +12,9 @@ import sys
 from pathlib import Path
 
 import pandas as pd
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QApplication,
-    QCheckBox,
     QComboBox,
     QFileDialog,
     QFormLayout,
@@ -27,7 +27,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .core import DEFAULT_AGGREGATION, detect_delimiter, resample_csv
+from .core import DATE_FORMATS, DEFAULT_AGGREGATION, detect_delimiter, resample_csv
 
 
 INTERVALS = ["1min", "5min", "10min", "15min", "30min", "1h", "1D"]
@@ -35,7 +35,6 @@ PER_COLUMN = "per column (default rules)"
 AGGREGATIONS = [PER_COLUMN, "mean", "sum", "min", "max", "median", "first", "last"]
 # Label shown in the dropdown -> value passed to resample_csv
 DELIMITERS = {"Auto-detect": None, "Comma (,)": ",", "Semicolon (;)": ";", "Tab": "\t"}
-DEFAULT_DATE_FORMAT = "%d-%m-%y %H:%M:%S"
 
 
 class ResamplerWindow(QWidget):
@@ -72,14 +71,13 @@ class ResamplerWindow(QWidget):
         self.timestamp_combo.setEditable(True)  # filled from the file header
         self.timestamp_combo.setCurrentText("Timestamp")
 
-        self.date_format_edit = QLineEdit(DEFAULT_DATE_FORMAT)
-        self.auto_date_check = QCheckBox("Detect automatically")
-        self.auto_date_check.toggled.connect(
-            lambda checked: self.date_format_edit.setEnabled(not checked)
-        )
-        date_row = QHBoxLayout()
-        date_row.addWidget(self.date_format_edit)
-        date_row.addWidget(self.auto_date_check)
+        # Labels are example timestamps; the format code is shown as a tooltip.
+        self.date_format_combo = QComboBox()
+        for label, fmt in DATE_FORMATS.items():
+            self.date_format_combo.addItem(label)
+            self.date_format_combo.setItemData(
+                self.date_format_combo.count() - 1, fmt, Qt.ItemDataRole.ToolTipRole
+            )
 
         # --- Output file name (saved next to the input file) ---
         self.output_edit = QLineEdit()
@@ -91,7 +89,7 @@ class ResamplerWindow(QWidget):
         form.addRow("Interval:", self.interval_combo)
         form.addRow("Aggregation:", self.aggregation_combo)
         form.addRow("Timestamp column:", self.timestamp_combo)
-        form.addRow("Date format:", date_row)
+        form.addRow("Timestamps look like:", self.date_format_combo)
         form.addRow("Output file name:", self.output_edit)
 
         # --- Run button and log ---
@@ -126,7 +124,10 @@ class ResamplerWindow(QWidget):
             if delimiter is None:
                 delimiter = detect_delimiter(path)
                 self._log(f"Detected delimiter: {delimiter!r}")
-            columns = list(pd.read_csv(path, sep=delimiter, nrows=0).columns)
+            columns = [
+                column for column in pd.read_csv(path, sep=delimiter, nrows=0).columns
+                if not column.startswith("Unnamed:")  # from trailing delimiters
+            ]
         except Exception as exc:  # noqa: BLE001 - show any read problem to the user
             self._log(f"Could not read header: {exc}")
             return
@@ -164,8 +165,6 @@ class ResamplerWindow(QWidget):
         if aggregation == PER_COLUMN:
             aggregation = DEFAULT_AGGREGATION
 
-        date_format = None if self.auto_date_check.isChecked() else self.date_format_edit.text()
-
         self._log(f"Resampling {input_path.name} to {self.interval_combo.currentText()}...")
         try:
             df = resample_csv(
@@ -173,7 +172,7 @@ class ResamplerWindow(QWidget):
                 output_file=output_path,
                 interval=self.interval_combo.currentText(),
                 timestamp_column=self.timestamp_combo.currentText(),
-                date_format=date_format or None,
+                date_format=DATE_FORMATS[self.date_format_combo.currentText()],
                 aggregation=aggregation,
                 delimiter=DELIMITERS[self.delimiter_combo.currentText()],
             )

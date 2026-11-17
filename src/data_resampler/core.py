@@ -21,6 +21,23 @@ DEFAULT_AGGREGATION: dict[str, str] = {
     "Energy Meter": "last",
 }
 
+# Ready-made timestamp formats: example of what the timestamp looks like
+# -> pandas/strftime format code. The first entry is the default.
+DATE_FORMATS: dict[str, str] = {
+    "31-12-26 23:59:59": "%d-%m-%y %H:%M:%S",
+    "31-12-26 23:59": "%d-%m-%y %H:%M",
+    "31-12-2026 23:59:59": "%d-%m-%Y %H:%M:%S",
+    "31-12-2026 23:59": "%d-%m-%Y %H:%M",
+    "31/12/2026 23:59:59": "%d/%m/%Y %H:%M:%S",
+    "31/12/2026 23:59": "%d/%m/%Y %H:%M",
+    "31.12.2026 23:59:59": "%d.%m.%Y %H:%M:%S",
+    "31.12.2026 23:59": "%d.%m.%Y %H:%M",
+    "2026-12-31 23:59:59 (ISO)": "%Y-%m-%d %H:%M:%S",
+    "2026-12-31 23:59 (ISO)": "%Y-%m-%d %H:%M",
+    "12/31/2026 23:59:59 (US)": "%m/%d/%Y %H:%M:%S",
+    "12/31/2026 23:59 (US)": "%m/%d/%Y %H:%M",
+}
+
 # Delimiters tried when auto-detecting.
 CANDIDATE_DELIMITERS = (",", ";", "\t", "|")
 
@@ -68,8 +85,9 @@ def resample_csv(
         Name of the timestamp column.
 
     date_format:
-        Expected timestamp format.
-        Set to None to let pandas detect it automatically.
+        Expected timestamp format, e.g. one of the values in DATE_FORMATS.
+        Set to None to let pandas guess it. Not recommended for
+        day-first dates: pandas may silently swap day and month.
 
     aggregation:
         Either one method applied to every numeric column
@@ -100,7 +118,17 @@ def resample_csv(
     if delimiter is None:
         delimiter = detect_delimiter(input_file)
 
-    df = pd.read_csv(input_file, sep=delimiter)
+    # index_col=False: rows ending with a trailing delimiter must not turn
+    # the first column into the index (which shifts all columns by one).
+    df = pd.read_csv(input_file, sep=delimiter, index_col=False)
+
+    # A trailing delimiter on the header line creates an empty
+    # "Unnamed: N" column; drop such columns.
+    empty_unnamed = [
+        column for column in df.columns
+        if str(column).startswith("Unnamed:") and df[column].isna().all()
+    ]
+    df = df.drop(columns=empty_unnamed)
 
     if timestamp_column not in df.columns:
         raise ValueError(
