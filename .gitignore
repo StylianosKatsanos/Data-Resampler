@@ -17,4 +17,4 @@ __pycache__/
 # Data & outputs (adjust to taste)
 *.log
 data/raw/
-output/
+output/*.egg-info/
