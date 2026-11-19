@@ -1,0 +1,2 @@
+[console_scripts]
+data-resampler = data_resampler.gui:main

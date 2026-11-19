@@ -38,6 +38,14 @@ DATE_FORMATS: dict[str, str] = {
     "12/31/2026 23:59 (US)": "%m/%d/%Y %H:%M",
 }
 
+# Timestamp convention of the resampled data -> pandas `label`/`closed` side.
+#   "end":   00:15 holds the data after 00:00 up to and including 00:15
+#   "start": 00:00 holds the data from 00:00 up to but excluding 00:15
+TIMESTAMP_CONVENTIONS: dict[str, str] = {
+    "end": "right",
+    "start": "left",
+}
+
 # Delimiters tried when auto-detecting.
 CANDIDATE_DELIMITERS = (",", ";", "\t", "|")
 
@@ -64,6 +72,7 @@ def resample_csv(
     aggregation: str | Mapping[str, str] = "mean",
     fallback_aggregation: str = "mean",
     delimiter: str | None = None,
+    convention: str= "end",
 ) -> pd.DataFrame:
     """
     Load a time-series CSV, resample it to a specified interval,
@@ -102,12 +111,25 @@ def resample_csv(
         Column separator of the input file, e.g. "," or ";".
         If None, it is detected from the header line.
         The output file is written with the same delimiter.
+    
+    convention:
+        "end": each timestamp marks the end of its interval, e.g. with
+        "15min" the row 00:15 covers the data after 00:00 up to 00:15.
+        "start": each timestamp marks the start of its interval, e.g.
+        the row 00:00 covers the data from 00:00 up to before 00:15.
 
     Returns
     -------
     pd.DataFrame
         The resampled DataFrame.
     """
+    
+    if convention not in TIMESTAMP_CONVENTIONS:
+        raise ValueError(
+            f"Unknown convention '{convention}'. "
+            f"Choose one of: {list(TIMESTAMP_CONVENTIONS)}"
+        )
+    side = TIMESTAMP_CONVENTIONS[convention]
 
     input_file = Path(input_file)
 
@@ -169,8 +191,8 @@ def resample_csv(
         df[numeric_columns]
         .resample(
             interval,
-            label="right",
-            closed="right",
+            label=side,
+            closed=side,
         )
         .agg(agg)
     )

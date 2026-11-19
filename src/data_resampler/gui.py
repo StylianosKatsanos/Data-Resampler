@@ -33,6 +33,13 @@ from .core import DATE_FORMATS, DEFAULT_AGGREGATION, detect_delimiter, resample_
 INTERVALS = ["1min", "5min", "10min", "15min", "30min", "1h", "1D"]
 PER_COLUMN = "per column (default rules)"
 AGGREGATIONS = [PER_COLUMN, "mean", "sum", "min", "max", "median", "first", "last"]
+# Label shown in the dropdown -> convention passed to resample_csv
+CONVENTIONS = {"End of interval": "end", "Start of interval": "start"}
+CONVENTION_TOOLTIP = (
+    "End of interval: with 15min, the row 00:15 holds the data after 00:00 up to 00:15.\n"
+    "Start of interval: with 15min, the row 00:00 holds the data from 00:00 up to before 00:15."
+)
+
 # Label shown in the dropdown -> value passed to resample_csv
 DELIMITERS = {"Auto-detect": None, "Comma (,)": ",", "Semicolon (;)": ";", "Tab": "\t"}
 
@@ -64,6 +71,10 @@ class ResamplerWindow(QWidget):
         self.interval_combo.setCurrentText("15min")
         self.interval_combo.currentTextChanged.connect(self._update_output_name)
 
+        self.convention_combo = QComboBox()
+        self.convention_combo.addItems(CONVENTIONS)
+        self.convention_combo.setToolTip(CONVENTION_TOOLTIP)
+        
         self.aggregation_combo = QComboBox()
         self.aggregation_combo.addItems(AGGREGATIONS)
 
@@ -87,6 +98,7 @@ class ResamplerWindow(QWidget):
         form.addRow("Input file:", input_row)
         form.addRow("Delimiter:", self.delimiter_combo)
         form.addRow("Interval:", self.interval_combo)
+        form.addRow("Timestamp marks:", self.convention_combo)
         form.addRow("Aggregation:", self.aggregation_combo)
         form.addRow("Timestamp column:", self.timestamp_combo)
         form.addRow("Timestamps look like:", self.date_format_combo)
@@ -175,6 +187,7 @@ class ResamplerWindow(QWidget):
                 date_format=DATE_FORMATS[self.date_format_combo.currentText()],
                 aggregation=aggregation,
                 delimiter=DELIMITERS[self.delimiter_combo.currentText()],
+                convention=CONVENTIONS[self.convention_combo.currentText()],
             )
         except Exception as exc:  # noqa: BLE001 - show any error to the user
             self._log(f"Error: {exc}")
