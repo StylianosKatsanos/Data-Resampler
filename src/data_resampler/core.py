@@ -24,18 +24,18 @@ DEFAULT_AGGREGATION: dict[str, str] = {
 # Ready-made timestamp formats: example of what the timestamp looks like
 # -> pandas/strftime format code. The first entry is the default.
 DATE_FORMATS: dict[str, str] = {
-    "31-12-26 23:59:59": "%d-%m-%y %H:%M:%S",
-    "31-12-26 23:59": "%d-%m-%y %H:%M",
-    "31-12-2026 23:59:59": "%d-%m-%Y %H:%M:%S",
-    "31-12-2026 23:59": "%d-%m-%Y %H:%M",
-    "31/12/2026 23:59:59": "%d/%m/%Y %H:%M:%S",
-    "31/12/2026 23:59": "%d/%m/%Y %H:%M",
-    "31.12.2026 23:59:59": "%d.%m.%Y %H:%M:%S",
-    "31.12.2026 23:59": "%d.%m.%Y %H:%M",
-    "2026-12-31 23:59:59 (ISO)": "%Y-%m-%d %H:%M:%S",
-    "2026-12-31 23:59 (ISO)": "%Y-%m-%d %H:%M",
-    "12/31/2026 23:59:59 (US)": "%m/%d/%Y %H:%M:%S",
-    "12/31/2026 23:59 (US)": "%m/%d/%Y %H:%M",
+    "DD-MM-YY HH:MM:SS": "%d-%m-%y %H:%M:%S",
+    "DD-MM-YY HH:MM": "%d-%m-%y %H:%M",
+    "DD-MM-YYYY HH:MM:SS": "%d-%m-%Y %H:%M:%S",
+    "DD-MM-YYYY HH:MM": "%d-%m-%Y %H:%M",
+    "DD/MM/YYYY HH:MM:SS": "%d/%m/%Y %H:%M:%S",
+    "DD/MM/YYYY HH:MM": "%d/%m/%Y %H:%M",
+    "DD.MM.YYYY HH:MM:SS": "%d.%m.%Y %H:%M:%S",
+    "DD.MM.YYYY HH:MM": "%d.%m.%Y %H:%M",
+    "YYYY-MM-DD HH:MM:SS (ISO)": "%Y-%m-%d %H:%M:%S",
+    "YYYY-MM-DD HH:MM (ISO)": "%Y-%m-%d %H:%M",
+    "MM/DD/YYYY HH:MM:SS (US)": "%m/%d/%Y %H:%M:%S",
+    "MM/DD/YYYY HH:MM (US)": "%m/%d/%Y %H:%M",
 }
 
 # Timestamp convention of the resampled data -> pandas `label`/`closed` side.
